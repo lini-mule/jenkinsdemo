@@ -1,0 +1,17 @@
+{
+  "sampleData": {
+    "7540b0c8-bed7-412c-9047-994a8c4364a1": {
+      "payload": "sample_data/iorder01-zin_svc_iorder01.xml"
+    },
+    "42fd5bd7-2a47-4365-b565-7b4bb61e290b": {
+      "payload": "sample_data/zin_svc_iorder01.xml",
+      "vars-SysNam": "sample_data/unknown_3.dwl",
+      "vars-SystemNam": "sample_data/unknown_1.dwl",
+      "vars-SysNamB": "sample_data/unknown_2.dwl",
+      "vars-SysNamC": "sample_data/unknown.dwl"
+    },
+    "163ad6ea-6e56-4d43-84e7-a34d10bb4edc": {
+      "vars-beforeReqTS": "sample_data/defaultnumbertype.dwl"
+    }
+  }
+}

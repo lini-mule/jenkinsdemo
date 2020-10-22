@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:sap="http://www.mulesoft.org/schema/mule/sap" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sap http://www.mulesoft.org/schema/mule/sap/current/mule-sap.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd">
+	
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8935d5c4-824f-4b00-bbc0-fbd6d4aa2068" >
+		<http:listener-connection host="0.0.0.0" port="8089" />
+	</http:listener-config>
+	<flow name="tcs-epc-serviceorder-outboundFlow" doc:id="70b6b741-4c86-4e9f-b2ca-13cf30b073c3" >
+		<sap:document-listener doc:name="Document listener" doc:id="2d3042e5-2aa5-42e0-a975-aae83dc2d300" config-ref="SAP_Config" gatewayHost="${DIV.MULE.SAP.EPC.JcoGATEWAYHOST}" gatewayService="${DIV.MULE.SAP.EPC.JcoGATEWAYSERVICE}" programID="${DIV.MULE.SAP.EPC.JcoPROGRAMID}" idocTypeFilterRegex="IORDER01"/>
+<!-- 		<http:listener doc:name="Listener" doc:id="5533173b-4cde-420f-aaff-add58bccfb09" config-ref="HTTP_Listener_config" path="/a"/> -->
+		<flow-ref doc:name="Prepare-ServiceOrder-Object-Sub_Flow" doc:id="3640f77a-724e-4d75-a702-0f8b5c548052" name="Prepare-ServiceOrder-Object-Sub_Flow"/>
+		<flow-ref doc:name="Upsert-Into-SFDC-APEX-Rest-WebService-Sub_Flow" doc:id="59668cc6-ddd7-4bcd-9a63-163eb1e933b9" name="Upsert-Into-SFDC-APEX-Rest-WebService-Sub_Flow"/>
+		<flow-ref doc:name="Decision-Sub_Flow" doc:id="7132b0ba-a24f-403a-90fa-e56c30dc645d" name="Decision-Sub_Flow"/>
+	</flow>
+	<sub-flow name="Prepare-ServiceOrder-Object-Sub_Flow" doc:id="3a96e7c1-9192-4ef3-b8ed-2a32e4cd187e" >
+		<logger level="INFO" doc:name="Logger" doc:id="defd691d-358b-45eb-9a36-bad5bddc208a" message="IDOC received from SAP TCS Service Order Outbound: #[payload]"/>
+		<set-variable value="#[payload]" doc:name="Set Input Variable" doc:id="bfc50846-c1f5-4818-a9fa-4d6b8b2f4123" variableName="input"/>
+		<ee:transform doc:name="Transform Message" doc:id="798c041a-513c-48b7-9263-add025db6252" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="StoreIdocNum" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.DOCNUM default ""]]></ee:set-variable>
+				<ee:set-variable variableName="SysNam" ><![CDATA[%dw 2.0
+output application/java
+---
+if(p('SysSep') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"SEP-"
+else if (p('SysEpc') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"EPC-"
+else
+""]]></ee:set-variable>
+				<ee:set-variable variableName="SysNamB" ><![CDATA[%dw 2.0
+output application/java
+---
+if(p('SysSep') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"-SEP"
+else if (p('SysEpc') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"-EPC"
+else
+""]]></ee:set-variable>
+				<ee:set-variable variableName="SysNamC" ><![CDATA[%dw 2.0
+output application/java
+---
+if(p('SysSep') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"_SEP"
+else if (p('SysEpc') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"_EPC"
+else
+""]]></ee:set-variable>
+				<ee:set-variable variableName="OrderNum" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.AUFNR default ""]]></ee:set-variable>
+				<ee:set-variable variableName="SystemNam" ><![CDATA[%dw 2.0
+output application/java
+---
+if(p('SysSep') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"SEP"
+else if (p('SysEpc') contains payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR)
+"EPC"
+else
+""]]></ee:set-variable>
+				<ee:set-variable variableName="SysD" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.SNDPOR default ""]]></ee:set-variable>
+				<ee:set-variable variableName="pName" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1OROPR.ZIN_SVC_SERVORDER_OPERATION[0].PERNR_NAME default ""]]></ee:set-variable>
+				<ee:set-variable variableName="pNumber" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1OROPR.ZIN_SVC_SERVORDER_OPERATION[0].PERNR default ""]]></ee:set-variable>
+				<ee:set-variable variableName="sPlant" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1NTHDR.IWERK default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="42fd5bd7-2a47-4365-b565-7b4bb61e290b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+var S_hour = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC[1 to 2]) as Number else 0
+var S_min = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC[3 to 4]) as Number else 0
+var S_sec = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC[5 to 6]) as Number else 0
+var E_hour = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC[1 to 2]) as Number else 0
+var E_min = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC[3 to 4]) as Number else 0
+var E_sec = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC[5 to 6]) as Number else 0
+var S_sign = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.START_UTC[0])  else "+"
+var E_sign = if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC != null) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.END_UTC[0])  else "+"
+import * from dw::core::Strings
+output application/json
+---
+{
+	ParentWorkOrder: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.MAUFNR != null ) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.MAUFNR default "" ++ vars.SysNamC default "") else null,
+	SAPWOLINumber: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.AUFNR != null ) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.AUFNR ++ vars.SysNamC) else null,
+	SystemName: vars.SystemNam default "",
+	OrderType: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.AUART,
+	IDOCNumber : payload.ZIN_SVC_IORDER01.IDOC.EDI_DC40.DOCNUM,
+	UserStatus: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.USTXT,
+	CurrencyCode: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.WAERS,
+	OrderNumber: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.SALES_ORD,
+	WOLIStatus: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.STTXT,
+	NotificationLongtext: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER_COMMENTS.NOTIF_LONGTXT,
+	ObjectCode: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CODE_GROUP,
+	WOSoldToParty: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "AG")].PARNR[0] != null ) ((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "AG")].PARNR[0]) default "" ++ vars.SysNamC default "") else null,
+	Priority: if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK == "1") "1 Very High"
+				else if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK == "2") "2 High"
+				else if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK == "3") "3 Medium"
+				else if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK == "4") "4 Low"
+				else if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK == "5") "5 Very Low"
+				else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.PRIOK,
+	UserTimeZone: if (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.TIMEZONE_CREATED != null) (p(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.TIMEZONE_CREATED)) else null,
+	Description: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.KTEXT,
+	PlanningPlant: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1NTHDR.IWERK,
+	PlannerGroup: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1NTHDR.INGRP,
+	MainWorkCenter: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ARBPL,
+	MaintenanceActivityType: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ILART,
+	CatelogProfile: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CATALOG_PROFILE,
+	DamageCode: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.DAMAGE_CODE,
+	AccountingIndicator: if(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.ACC_IND == null) null 
+						else if( isNumeric(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.ACC_IND) == true)  leftPad(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.ACC_IND,2,"0")
+						else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.ACC_IND,
+	CustomerPONumber: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.PURCH_NO_C,
+	EquipmentNumber: if ( isNumeric(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.EQUNR) == true ) (((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.EQUNR as Number) as String) ++ vars.SysNamB default "") else (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.EQUNR),
+	OperationNumber: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1OROPR.VORNR,
+	Operations: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1OROPR default [] map ( e1OROPR , indexOfE1OROPR ) -> {
+		Description: e1OROPR.LTXA1,
+		originalstartdate : if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP != "00000000" ) ((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) else null,
+		originalenddate : if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP != "00000000" ) ((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) else null,
+
+	BasicStartTime: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP != "00000000" ) 
+	
+	
+	(  if (S_sign == "-")
+		
+		((((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) - ("PT$(S_hour)H" as Period) - ("PT$(S_min)M" as Period) - ("PT$(S_sec)S" as Period)) as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		})  
+		
+		else ((((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GSUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) + ("PT$(S_hour)H" as Period) + ("PT$(S_min)M" as Period) + ("PT$(S_sec)S" as Period)) as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		})
+		
+		) else null,
+		
+		
+		BasicEndTime: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP != "00000000" ) 
+		
+		(
+			if (E_sign == "-")
+		
+		((((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) - ("PT$(E_hour)H" as Period) - ("PT$(E_min)M" as Period) - ("PT$(E_sec)S" as Period)) as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		})
+		
+		else ((((((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLTRP as Date {
+			format: "yyyyMMdd"
+		} as String {
+			format: "yyyy-MM-dd"
+		}) default "" ++ 'T' ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.GLUZP as LocalTime {
+			format: "HHmmss"
+		} as String {
+			format: "HH:mm:ss"
+		}) ++ '.000') >> 'GMT') as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		}) + ("PT$(E_hour)H" as Period) + ("PT$(E_min)M" as Period) + ("PT$(E_sec)S" as Period)) as DateTime {
+			format: "yyyy-MM-dd'T'HH:mm:ss.SSS"
+		})		
+		
+		) else null,
+		
+		
+		TechnicianAssigned: if (e1OROPR.ZIN_SVC_SERVORDER_OPERATION.PERNR == "00000000" or e1OROPR.ZIN_SVC_SERVORDER_OPERATION.PERNR == null) null else if ( isNumeric(e1OROPR.ZIN_SVC_SERVORDER_OPERATION.PERNR) == true ) ((e1OROPR.ZIN_SVC_SERVORDER_OPERATION.PERNR as Number)) as String else e1OROPR.ZIN_SVC_SERVORDER_OPERATION.PERNR,
+		CFName: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_FIRST_NAME,
+		CLName: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_LAST_NAME,
+		CEmail: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_EMAIL,
+		CPhone: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.PHONE_EXT != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.PHONE_EXT != "" ) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_PHONE default "" ++ ";" ++ payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.PHONE_EXT default "") else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_PHONE,
+		CMobile: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_MOBILE,
+		CJobTitle: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_TITLE,
+		Duration:  if (e1OROPR.ARBEI == null) null else if (e1OROPR.ARBEH == "ZQT") ((trim (e1OROPR.ARBEI)) * 0.25) else trim (e1OROPR.ARBEI),
+		DurationType: if (e1OROPR.ARBEH == "ZQT") "H" else e1OROPR.ARBEH,
+		CCustomerNumber: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].PARNR[0] != null ) ((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].PARNR[0]) default "" ++ vars.SysNamC default "") else null,
+		CExternalId: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_PERS_NUMBER != null ) (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.ZIN_SVC_SERVORDER.CONTACT_PERS_NUMBER ++ vars.SysNamB) else null,
+		AName: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) trim((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.NAME1 default "") ++ " " ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.NAME2 default "")) else trim((payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.NAME1[0] default "") ++ " " ++ (payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.NAME2[0] default "")),
+		AStreet: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.STREET else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.STREET[0],
+		ACity: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.CITY1 else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.CITY1[0],
+		AZip: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.POST_CODE1 else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.POST_CODE1[0],
+		AStateCode: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.REGION else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.REGION[0],
+		// ACountry: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null) (Mule::p(payload.ZIN_NAM_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.COUNTRY))
+		// else if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0] != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0] != "") (Mule::p(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0]))
+		// else null,
+		ACountry : if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null) p(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.COUNTRY)
+					else if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0] != null and payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0] != "") (Mule::p(payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.COUNTRY[0]))
+					else null,
+		APhone: if ( payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR != null ) payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1ORTOB.E1ORTOB_ADR.TEL_NUMBER else payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.*E1ORPAR[?($.PARVW == "WE")].E1ORPAR_ADR.TEL_NUMBER[0],
+		Materials: [],
+		Labours: []
+	},
+	Components: payload.ZIN_SVC_IORDER01.IDOC.E1ORHDR.E1OROPR.*E1OROPR_MAT default [] map ((e1OROPRMAT , indexOfE1OROPRMAT) -> {
+		MaterialCode: if ( isNumeric(e1OROPRMAT.MATNR) == true ) (vars.SysNam default "" ++ ((e1OROPRMAT.MATNR as Number) as String) default "") else (vars.SysNam default "" ++ e1OROPRMAT.MATNR default ""),
+		Plant: e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.WERKS,
+		Location: e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.LGORT,
+		ItemCategory: e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.POSTP,
+		AdvancedShipment: if ( e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.COMPONENT_STATUS == "ADVS" ) true else false,
+		Description: e1OROPRMAT.MAKTX,
+		QuantityUOM: e1OROPRMAT.MEINS,
+		Quantity: if ( e1OROPRMAT.BDMNG != null and e1OROPRMAT.BDMNG != "" ) (trim(e1OROPRMAT.BDMNG)) as Number as String {
+			format: "#,####"
+		} else null,
+		ItemNumber: if (e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.POSNR != null) (vars.SysNam default "" ++ e1OROPRMAT.ZIN_SVC_SERVORDER_COMPONENT.POSNR default "") else null
+	})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="abbe1c99-2f8f-4530-a04e-48b8dbb69b22" message="Payload before sending to SFDC Rest API : #[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="d28f822a-2f29-4415-9ca8-e049d1b98e91" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	URLParameters: {
+		Parameter1: payload
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="Upsert-Into-SFDC-APEX-Rest-WebService-Sub_Flow" doc:id="7c6cf545-5fd7-4ef8-aa07-b54d0ca3eb34" >
+		<ee:transform doc:name="Transform Message" doc:id="dc9eb1f1-977a-41ce-9972-656781c120d6" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="beforeReqTS" ><![CDATA[%dw 2.0
+output application/java
+---
+now().milliseconds]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:invoke-apex-rest-method className="ServiceOrderUpsertIntegration" methodName="upsertServiceOrder^/ServiceOrderServices^HttpPost^String" doc:name="Invoke apex rest method" doc:id="8b72ccfe-20a2-4f3c-8ecb-da4cbf0136e9" config-ref="Salesforce_Config">
+			<salesforce:request ><![CDATA[#[payload.URLParameters.Parameter1]]]></salesforce:request>
+		</salesforce:invoke-apex-rest-method>
+		<ee:transform doc:name="Transform Message" doc:id="163ad6ea-6e56-4d43-84e7-a34d10bb4edc" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="serviceTime" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.beforeReqTS - now().milliseconds]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7667b25f-20ba-430f-8f82-6c9f567f2660" message="Output from SFDC Rest API : #[payload] "/>
+		<ee:transform doc:name="Transform Message" doc:id="2a490346-e834-480f-8ab8-c7d6c8d30222" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="resultCode" ><![CDATA[%dw 2.0
+output application/java
+---
+"200"]]></ee:set-variable>
+				<ee:set-variable variableName="accErr" ><![CDATA[%dw 2.0
+output application/java
+---
+"502"]]></ee:set-variable>
+				<ee:set-variable variableName="SequenceErr" ><![CDATA[%dw 2.0
+output application/java
+---
+"501"]]></ee:set-variable>
+				<ee:set-variable variableName="sCode" ><![CDATA[%dw 2.0
+output application/java
+---
+if(payload.upsertServiceOrderOutput.responseStatus.mCode != null)
+payload.upsertServiceOrderOutput.responseStatus.mCode
+else ""]]></ee:set-variable>
+				<ee:set-variable variableName="sMsg" ><![CDATA[%dw 2.0
+output application/java
+---
+if (payload.upsertServiceOrderOutput.responseStatus.mMessage != null)
+payload.upsertServiceOrderOutput.responseStatus.mMessage
+else ""]]></ee:set-variable>
+				<ee:set-variable variableName="techErr" ><![CDATA[%dw 2.0
+output application/java
+---
+"500"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="Decision-Sub_Flow" doc:id="31b31d48-d8a8-49ab-9cfb-3b3fdd96620f" >
+		<choice doc:name="Choice" doc:id="f5b7fbc1-37cd-4e48-b93d-22dac5a9e24b" >
+			<when expression="#[payload.upsertServiceOrderOutput.responseStatus.mCode == vars.resultCode]">
+				<ee:transform doc:name="Transform Message" doc:id="b19cff1e-0063-4d68-a53e-c9ea629e5248" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="4e124684-658c-4808-8cbf-fa3f69fa42e3" message="IDOC Number : #[vars.StoreIdocNum] #['\n'] Order Number  : #[vars.OrderNum]  #['\n'] JSON Payload from SFDC : #[payload] #['\n'] Time taken in SFDC processing #[vars.serviceTime]"/>
+			</when>
+			<when expression="#[payload.upsertServiceOrderOutput.responseStatus.mCode == vars.accErr]">
+				<ee:transform doc:name="Transform Message" doc:id="4e0aa65e-ba4e-43c0-8318-800a2e08b70e">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="ed637819-3099-46b3-8346-35110c9f11dc" message="IDOC Number : #[vars.StoreIdocNum] #['\n'] Order Number  : #[vars.OrderNum]  #['\n'] Error JSON Payload from SFDC : #[payload] #['\n'] Time taken in SFDC processing #[vars.serviceTime]"/>
+				<set-variable value="#[payload]" doc:name="Set SFDCResResponse Variable" doc:id="76fd6ebb-de10-454b-a02f-68f7429395dd" variableName="SFDCResResponse"/>
+				<set-payload value='#[vars."input"]' doc:name="Set Input Payload" doc:id="72cfe09f-eb4a-420c-a05f-4ba313db64a9" />
+				<try doc:name="Try" doc:id="4a2a0176-d95c-42f6-931b-4ec600e85d16" >
+					<anypoint-mq:publish doc:name="Publish" doc:id="ba04fcd0-d624-47fa-82e8-71445a3f5300" config-ref="Anypoint_MQ_Config" destination="${DIV.MULE.SALESFORCE.SFDCERROR.Q}" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="5438520f-ed36-4f1b-b540-b053e34cdb81" >
+							<logger level="INFO" doc:name="Logger" doc:id="23800dd7-c3ab-47e5-86e0-3347f65af019" message="Error in Publishing to Queue..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<try doc:name="Try" doc:id="600bdc7c-43e5-40c4-95f2-35e4da3e7999" >
+					<cloudhub:create-notification domain="${DIV.MULE.SFDC.CLOUDHUB.DOMAIN}" doc:name="Create Notification" doc:id="33e40af1-b580-4690-8206-0090e53af4bc" config-ref="CloudHub_Config" priority="ERROR">
+					<cloudhub:message><![CDATA[#[%dw 2.0
+output text/plain
+---
+"Salesforce Error Message :: \n" ++ vars.sMsg]]]></cloudhub:message>
+					<cloudhub:custom-properties><![CDATA[#[output application/java
+---
+{
+	SerNum : vars.OrderNum,
+	sCode : vars.sCode,
+	Sys : vars.SysD,
+	Idoc : vars.StoreIdocNum
+}]]]></cloudhub:custom-properties>
+				</cloudhub:create-notification>
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="21b5749e-463c-48cf-a084-9b2de21f75ea" >
+							<logger level="INFO" doc:name="Logger" doc:id="8df524ed-ad24-44a8-aef6-f6ca3020b530" message="Error in cloudhub notification..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<async doc:name="Async" doc:id="8473266b-1ba7-4842-8a35-77f86c61b177" >
+					<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="d22160ca-af95-4bbc-b4ba-755e7d45a1ad" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+				</async>
+			</when>
+			<when expression="#[payload.upsertServiceOrderOutput.responseStatus.mCode == vars.techErr]">
+				<ee:transform doc:name="Transform Message" doc:id="ca81c360-fcd5-4754-8a76-82b99b85e46e">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="1c649d15-1cb2-4a19-9e6a-93c74ee72e93" message="IDOC Number : #[vars.StoreIdocNum] #['\n'] Order Number  : #[vars.OrderNum]  #['\n'] Error JSON Payload from SFDC : #[payload] #['\n'] Time taken in SFDC processing #[vars.serviceTime]"/>
+				<set-variable value="#[payload]" doc:name="Set SFDCResResponse Variable" doc:id="796d7d71-b053-4e11-9dc0-c1bda1a1524e" variableName="SFDCResResponse"/>
+				<set-payload value='#[vars."input"]' doc:name="Set Input Payload" doc:id="a0ef0a82-fabc-4276-b263-5ca16dbbb2b8" />
+				<try doc:name="Try" doc:id="f32b6993-fa0b-4f6c-aa0d-de65b80cd717" >
+					<anypoint-mq:publish doc:name="Publish" doc:id="068d3617-b217-4c8d-9445-933a4c1fb69c" config-ref="Anypoint_MQ_Config" destination="${DIV.MULE.SALESFORCE.SFDCERROR.Q}" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="085fdf15-b3d3-401b-bf40-c90a2d553ff1" >
+							<logger level="INFO" doc:name="Logger" doc:id="cfff787d-2227-48dd-a1ca-1fcc6a367088" message="Error in posting to Queue..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<try doc:name="Try" doc:id="22962d86-3f8d-4177-8dc1-c8b22c7b9df6" >
+					<cloudhub:create-notification domain="${DIV.MULE.SFDC.CLOUDHUB.DOMAIN}" doc:name="Create Notification" doc:id="fb1cad86-fb31-4f93-a681-f3d61c02bc13" config-ref="CloudHub_Config" priority="ERROR">
+					<cloudhub:message><![CDATA[#[%dw 2.0
+output text/plain
+---
+"Salesforce Error Message :: \n" ++ vars.sMsg]]]></cloudhub:message>
+					<cloudhub:custom-properties><![CDATA[#[output application/java
+---
+{
+	SerNum : vars.OrderNum,
+	sCode : vars.sCode,
+	Sys : vars.SysD,
+	Idoc : vars.StoreIdocNum
+}]]]></cloudhub:custom-properties>
+				</cloudhub:create-notification>
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6e5c36ec-2cef-4361-a6c3-0d722165019e" >
+							<logger level="INFO" doc:name="Logger" doc:id="17b9d3e4-b00c-441b-9cd4-0843c99ed75f" message="Error in cloudhub notification..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<async doc:name="Async" doc:id="6cbba44f-c8d7-43b8-bb2f-59ed94732276" >
+					<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="6bcab1c9-fcad-4594-8264-59463e1d86eb" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+				</async>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="1f4947de-9f46-44e0-a3ae-21ab65aeb62c">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="29818838-1973-4c51-913f-dc1cd3d9580e" message="IDOC Number : #[vars.StoreIdocNum] #['\n'] Order Number  : #[vars.OrderNum]  #['\n'] Error JSON Payload from SFDC : #[payload] #['\n'] Time taken in SFDC processing #[vars.serviceTime]"/>
+				<set-variable value="#[payload]" doc:name="Set SFDCResResponse Variable" doc:id="9ff3c8b6-3f37-4a80-81de-7764099479d6" variableName="SFDCResResponse"/>
+				<set-payload value='#[vars."input"]' doc:name="Set Input Payload" doc:id="05c9fb51-c98c-439c-8f1b-84df56a38707" />
+				<try doc:name="Try" doc:id="4a2f546b-bec2-490a-90a3-7fe98001034a" >
+					<anypoint-mq:publish doc:name="Publish" doc:id="b9273dd5-aa6d-426f-8a49-abf54ea03337" config-ref="Anypoint_MQ_Config" destination="${DIV.MULE.SALESFORCE.SFDCERROR.Q}" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f660b3d6-3243-4e2a-aeb8-65d71bf259ff" >
+							<logger level="INFO" doc:name="Logger" doc:id="06ac78db-a1cf-4856-9ace-8d84b9aa82ef" message="Error in publishing to Queue..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<try doc:name="Try" doc:id="df6cf6ba-7987-4a5f-a00c-f3481ff0a752" >
+					<cloudhub:create-notification domain="${DIV.MULE.SFDC.CLOUDHUB.DOMAIN}" doc:name="Create Notification" doc:id="3920d008-cf2c-48d9-95b9-95cb9572e18d" config-ref="CloudHub_Config" priority="ERROR">
+					<cloudhub:message><![CDATA[#[%dw 2.0
+output text/plain
+---
+"Salesforce Error Message :: \n" ++ vars.sMsg]]]></cloudhub:message>
+					<cloudhub:custom-properties><![CDATA[#[output application/java
+---
+{
+	SerNum : vars.OrderNum,
+	sCode : vars.sCode,
+	Sys : vars.SysD,
+	Idoc : vars.StoreIdocNum
+}]]]></cloudhub:custom-properties>
+				</cloudhub:create-notification>
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1c7141f3-f2da-4e67-b5f2-0a556de84e84" >
+							<logger level="INFO" doc:name="Logger" doc:id="54b467a6-acc5-4b59-a1da-01b8acd7ebf0" message="Error in cloudhub notification..!!"/>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<async doc:name="Async" doc:id="45db4302-60b6-4e44-8003-de1b48dc59b5" >
+					<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="6b971183-7f8f-43f2-9fe9-4a751c26f77d" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+				</async>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

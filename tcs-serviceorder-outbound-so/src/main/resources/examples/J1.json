@@ -1,0 +1,69 @@
+{
+  "ParentWorkOrder": null,
+  "SAPWOLINumber": "000070801669_SEP",
+  "SystemName": "SEP",
+  "OrderType": "YSER",
+  "UserStatus": "0001",
+  "CurrencyCode": "CAD",
+  "OrderNumber": null,
+  "WOLIStatus": "REL  MANC PRC  SETC",
+  "NotificationLongtext": null,
+  "ObjectCode": "Z580",
+  "WOSoldToParty": "0001261986_SEP",
+  "Priority": "5",
+  "Description": "SW test Plant 1220",
+  "PlanningPlant": "1220",
+  "PlannerGroup": "CA1",
+  "MainWorkCenter": "EQDIV_08",
+  "MaintenanceActivityType": "Z05",
+  "CatelogProfile": "LEASED-DM",
+  "DamageCode": "1000",
+  "AccountingIndicator": "02",
+  "CustomerPONumber": "SW202005271",
+  "EquipmentNumber": "10349844-SEP",
+  "OperationNumber": "0010",
+  "Operations": [
+    {
+      "Description": "SW test Plant 1220",
+      "BasicStartTime": "2020-05-27T08:00:00.000",
+      "BasicEndTime": "2020-05-27T11:00:00.000",
+      "TechnicianAssigned": "13120",
+      "CFName": null,
+      "CLName": null,
+      "CEmail": null,
+      "CPhone": null,
+      "CMobile": null,
+      "CJobTitle": null,
+      "Duration": "3.0",
+      "DurationType": "H",
+      "CCustomerNumber": "0001261986_SEP",
+      "CExternalId": null,
+      "AName": "F J DAVEY HOME - DIETARY",
+      "AStreet": "733 3RD LINE E",
+      "ACity": "SAULT STE MARIE",
+      "AZip": "P6A 7C1",
+      "AStateCode": "ON",
+      "ACountry": "Canada",
+      "APhone": "705-254-4200",
+      "Materials": [
+        
+      ],
+      "Labours": [
+        
+      ]
+    }
+  ],
+  "Components": [
+    {
+      "MaterialCode": "SEP-D4003050",
+      "Plant": "1220",
+      "Location": "ON11",
+      "ItemCategory": "L",
+      "AdvancedShipment": false,
+      "Description": "30500-12 BLADE 23/2X385 test",
+      "QuantityUOM": "ZSU",
+      "Quantity": "1",
+      "ItemNumber": "SEP-0010"
+    }
+  ]
+} 

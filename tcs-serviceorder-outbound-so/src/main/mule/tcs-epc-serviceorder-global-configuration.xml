@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:sap="http://www.mulesoft.org/schema/mule/sap" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sap http://www.mulesoft.org/schema/mule/sap/current/mule-sap.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+	<global-property doc:name="Global Property" doc:id="615826f1-4990-424d-91de-5bbd1a6ef821" name="env" value="qa" />
+	<global-property doc:name="Global Property" doc:id="9e4cafd6-8c0e-4a53-81bf-fb42bd8b49bd" name="encryption-key" value="mcd" />
+	<configuration-properties doc:name="Configuration properties" doc:id="cb1e7a13-1755-4c45-8912-b436826263ee" file="diversey-${env}.properties" />
+	<configuration-properties doc:name="Configuration properties" doc:id="2b10bd0c-d53d-4079-980c-becb3dceef18" file="common-config.properties" />
+	<sap:sap-config name="SAP_Config" doc:name="SAP Config" doc:id="bae3d842-d20f-481f-8107-9c0f22ada063" >
+		<sap:simple-connection-provider-connection username="${DIV.MULE.SAP.EPC.SAPUSER}" password="${DIV.MULE.SAP.EPC.SAPPASSWORD}" systemNumber="${DIV.MULE.SAP.EPC.SAPSYSNO}" client="${DIV.MULE.SAP.EPC.SAPCLIENT}" applicationServerHost="${DIV.MULE.SAP.EPC.SAPASHOST}" />
+	</sap:sap-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="ab19df23-8a82-407a-b41c-0068681886dd" sendNullValues="true">
+		<salesforce:oauth-user-pass-connection consumerKey="${DIV.MULE.SFDC.CONSUMER.KEY}" consumerSecret="${DIV.MULE.SFDC.CONSUMER.SECRET.KEY}" username="${DIV.MULE.SFDC.USER}" password="${DIV.MULE.SFDC.PASSWORD}" securityToken="${DIV.MULE.SFDC.SECURITYTOKEN}" tokenEndpoint="${DIV.MULE.SFDC.URL}" >
+			<reconnection >
+				<reconnect frequency="3000" count="5" />
+			</reconnection>
+		</salesforce:oauth-user-pass-connection>
+	</salesforce:sfdc-config>
+	<cloudhub:config name="CloudHub_Config" doc:name="CloudHub Config" doc:id="8beb777d-be26-4a3f-b51a-7be27790a2ad" >
+		<cloudhub:connection username="${DIV.MULE.CLOUDHUB.USER}" password="${DIV.MULE.CLOUDHUB.PASSWORD}" environment="${environment.id}">
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</cloudhub:connection>
+	</cloudhub:config>
+	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="3aef97ae-b75d-40c8-bb91-2f5e79aec7e9" >
+		<anypoint-mq:connection url="${DIV.MULE.MQURL}" clientId="${DIV.MULE.MQ.CLIENTID}" clientSecret="${DIV.MULE.MQ.CLIENTSECRET}" >
+			<reconnection >
+				<reconnect />
+			</reconnection>
+		</anypoint-mq:connection>
+	</anypoint-mq:config>
+	<configuration doc:name="Configuration" doc:id="e677e594-5867-495c-999c-67f2771bd742" defaultErrorHandler-ref="tcs-global-error-handler" />
+
+
+</mule>

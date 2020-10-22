@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+	<flow name="tcs-epc-serviceorder-reprocessingFlow" doc:id="218c9173-14a3-445f-b962-cf2033540b15" >
+		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="a554e004-08a7-49d5-acb7-d9c6e2e5378b" config-ref="Anypoint_MQ_Config" destination="${DIV.MULE.SALESFORCE.REPROCESSERROR.Q}" acknowledgementMode="MANUAL">
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:polling fetchSize="1" >
+					<scheduling-strategy >
+						<fixed-frequency />
+					</scheduling-strategy>
+				</anypoint-mq:polling>
+			</anypoint-mq:subscriber-type>
+		</anypoint-mq:subscriber>
+		<set-payload value="#[payload]" doc:name="Set Payload to XML" doc:id="755264ce-0ec3-418f-b0ba-2b460f74377d" mimeType="application/xml"/>
+		<set-variable value="#[attributes.ackToken]" doc:name="Set Variable" doc:id="755d7ef4-598a-40cc-899d-b6d104fb4985" variableName="currentAckToken"/>
+		<flow-ref doc:name="Prepare-ServiceOrder-Object-Sub_Flow" doc:id="2afb7ebf-8bd8-428c-8be4-cb5265e58e60" name="Prepare-ServiceOrder-Object-Sub_Flow"/>
+		<flow-ref doc:name="Upsert-Into-SFDC-APEX-Rest-WebService-Sub_Flow" doc:id="43f750d7-ecfa-4ee0-b538-cd498bb5fbea" name="Upsert-Into-SFDC-APEX-Rest-WebService-Sub_Flow"/>
+		<flow-ref doc:name="Decision-Sub_Flow" doc:id="cf2c1386-0844-4ebc-88cc-626c5cc5f12f" name="Decision-Sub_Flow"/>
+		<set-payload value="Null" doc:name="Set Payload to Null" doc:id="7b937faa-0168-4939-8ea3-cfc74e5ac6a0" />
+		<anypoint-mq:ack doc:name="Ack" doc:id="1b7c03d7-4603-44fb-9b96-f00a4980b9cf" config-ref="Anypoint_MQ_Config" ackToken="#[vars.currentAckToken]"/>
+	</flow>
+</mule>

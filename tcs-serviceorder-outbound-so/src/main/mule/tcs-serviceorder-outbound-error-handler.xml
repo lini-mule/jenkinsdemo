@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sap="http://www.mulesoft.org/schema/mule/sap" xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub"
+	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd
+http://www.mulesoft.org/schema/mule/sap http://www.mulesoft.org/schema/mule/sap/current/mule-sap.xsd">
+	
+	
+	<error-handler name="tcs-global-error-handler" doc:id="990b015f-23a7-42f8-8092-3cb45f96aaf1">
+	<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c12b896f-10b6-4068-8d39-de2a5c940f58" type="ANYPOINT-MQ:CONNECTIVITY, ANYPOINT-MQ:DESTINATION_NOT_FOUND, ANYPOINT-MQ:ILLEGAL_BODY, ANYPOINT-MQ:PUBLISHING, ANYPOINT-MQ:RETRY_EXHAUSTED">
+			<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="55ba59e1-28cc-4dff-8f01-cb9d9ef8df35" name="tcs-integration-error-handlerSub_Flow"/>
+				
+</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="505bba2d-3c3e-4270-bae9-01a4b5820c01" type="SALESFORCE:CONNECTIVITY, SALESFORCE:INVALID_INPUT, SALESFORCE:INVALID_RESPONSE, SALESFORCE:LIMIT_EXCEEDED, SALESFORCE:MUTUAL_AUTHENTICATION_FAILED, SALESFORCE:NOT_FOUND, SALESFORCE:RETRY_EXHAUSTED, SALESFORCE:TIMEOUT">
+			<async doc:name="Async" doc:id="aef98178-14a9-44c9-82dc-62f0c3c93aad" >
+				<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="9ef2e84f-4fdc-4ade-ace5-d569abb4d77d" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+			</async>
+			<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="edb2d3f2-b995-4689-949e-f13233600c6e" name="tcs-integration-error-handlerSub_Flow"/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4bce3c05-dc78-4167-b4b5-fcf9f1a6700a" type="EXPRESSION">
+			<async doc:name="Async" doc:id="06f8754f-fc2f-4faa-80a7-a912a226e6e4" >
+				<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="ea03e313-a98b-4fc3-9c68-9fdf1bf1bfca" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+			</async>
+			<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="6ad5aff8-4515-43b1-a1e6-56aae8d4d08d" name="tcs-integration-error-handlerSub_Flow"/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8038b5b1-30e5-42a8-854c-4012f981bb97" type="SAP:CONNECTIVITY, SAP:INVALID_CACHE, SAP:INVALID_INPUT, SAP:METADATA_UNAVAILABLE, SAP:NOT_FOUND, SAP:NOT_SUPPORTED, SAP:PARSING, SAP:RETRY_EXHAUSTED, SAP:SYSTEM_BUSY, SAP:TIMEOUT">
+			<async doc:name="Async" doc:id="67c8665a-7f52-42ff-8cd0-0c7e7c6eafe0" >
+				<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="3c0ad6ed-bd32-4ad9-bb29-ccf7926eabe2" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+			</async>
+			<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="725c72cc-ea65-41fc-91b6-450514ed8eb0" name="tcs-integration-error-handlerSub_Flow"/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e423d396-47ae-48e1-b47a-37b29dcbc631" type="CLOUDHUB:CONNECTIVITY, CLOUDHUB:EXECUTION, CLOUDHUB:RETRY_EXHAUSTED">
+				<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="35ecf716-a6ee-4444-99f7-8b1de294b198" name="tcs-integration-error-handlerSub_Flow"/>
+			</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="63529f0c-b9e5-46b8-a91a-094930847547" type="ANY">
+			<async doc:name="Async" doc:id="1b708cca-84f6-47b0-8d6d-e5e0510273a9" >
+				<flow-ref doc:name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="4e1f96ea-900a-481c-a562-94548c61c5cf" name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" />
+			</async>
+			<flow-ref doc:name="tcs-integration-error-handlerSub_Flow" doc:id="853af481-e435-47ec-90b6-f62b5c04e256" name="tcs-integration-error-handlerSub_Flow"/>
+		</on-error-propagate>
+	</error-handler>
+	<sub-flow name="tcs-integration-error-handlerSub_Flow" doc:id="82405104-fa63-4aa9-b8f8-041f679e2d22" >
+		<ee:transform doc:name="Transform Message" doc:id="b2e363cc-9666-4ff1-92da-8f9ca7e2d46c">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	ErrorDesription : error.detailedDescription,
+	ErrorType : (error.errorType.identifier default "") ++ ":" ++ (error.errorType.namespace default ""),
+	Exception : error.cause.class
+	
+	
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="2b0e38fc-cbe8-492e-96e6-19ae7087162a" message="Error Caught at AnypointMq Below is detail :: #['\n'] #[payload]"/>
+			<set-payload value='#[vars."input" default ""]' doc:name="Set Input Payload" doc:id="07e7eff7-289c-43fb-8ee2-bd070ac1579c" />
+			<set-variable value='#[error.description default ""]' doc:name="Set Error Variable" doc:id="bcfb8f18-b2c5-424c-a8a0-a856c5c090e3" variableName="errDescription" />
+			<try doc:name="Try" doc:id="bd967351-a5c7-4e60-ade2-9ed186bfdf2c" >
+			<anypoint-mq:publish doc:name="Publish" doc:id="900fb10b-3387-42f9-b9a9-aa1b6e8e49e2" config-ref="Anypoint_MQ_Config" destination="${DIV.MULE.SALESFORCE.ERROR.Q}" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="be67668b-a433-4e96-93b5-c5e755d36067" >
+					<logger level="INFO" doc:name="Logger" doc:id="58f630ff-4da6-4793-9138-4ead29b44c2d" message="Error in publishing to queue..!!"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="Logger" doc:id="5bae3eda-d8c2-411d-9e40-140a00c1214b" message="Posted to queue :: ${DIV.MULE.SALESFORCE.ERROR.Q}"/>
+		<try doc:name="Try" doc:id="30bd9881-6433-4ca1-afa2-42d2b241e107" >
+			<cloudhub:create-notification doc:name="Create Notification" doc:id="e4990fef-e3cd-4e54-94a2-920a9c7ab303" config-ref="CloudHub_Config" domain="${DIV.MULE.SFDC.CLOUDHUB.DOMAIN}" priority="ERROR">
+				<cloudhub:message><![CDATA[#[%dw 2.0
+output text/plain
+---
+"Error Message :: \n" ++ vars.errDescription]]]></cloudhub:message>
+				<cloudhub:custom-properties><![CDATA[#[output application/java
+---
+{
+	SerNum : vars.OrderNum,
+	sCode : vars.sCode,
+	Sys : vars.SysD,
+	Idoc : vars.StoreIdocNum
+}]]]></cloudhub:custom-properties>
+			</cloudhub:create-notification>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1e277d9f-9a06-4253-9201-434c222b09c6" >
+					<logger level="INFO" doc:name="Logger" doc:id="0684e2b8-a559-4cb3-acdd-8006516bc42b" message="Error in cloudhub notification..!!"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</sub-flow>
+	<sub-flow name="tcs-serviceorder-outbound-SAP_BAPI_error-handlerSub_Flow" doc:id="c9b37782-7a06-4d60-b877-2b385d34108c" >
+		<ee:transform doc:name="Transform Message" doc:id="daed7d56-1dbc-47ac-89a5-5219678265d1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+  "ZSF_SERVICE_IDOC_ERR_MSG": {
+    "import": {
+      "I_ZAUFNR": vars.OrderNum,
+      "I_ZBASIC_TYPE": "IORDER01",
+      "I_ZDIRECT": "OUT",
+      "I_ZDOCNUM":vars.StoreIdocNum,
+      "I_ZEQUNR": null,
+      "I_ZMATNR": null,
+      "I_ZPLANT" : vars.sPlant,
+      "I_ZMESSAGE": if (vars.sMsg != null) vars.sMsg else error.description,
+      "I_ZPROJECT": "TCS10",
+      "I_ZTYPE": "E"
+    }
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="232b5d4f-fae7-4757-93f5-970b96ddf767" message="Payload sending to BAPI ZSF_SERVICE_IDOC_ERR_MSG :: #[payload]"/>
+		<sap:sync-rfc doc:name="Synchronous Remote Function Call" doc:id="205b34d9-6636-42e2-925a-5d2578f3e745" config-ref="SAP_Config" key="ZSF_SERVICE_IDOC_ERR_MSG"/>
+	</sub-flow>
+</mule>
